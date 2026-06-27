@@ -34,6 +34,10 @@ logs/
 .preview/
 .hvigor/
 oh_modules
+
+# FeelFish generated Electron payload
+web_engine/src/main/resources/resfile/resources/
+
 # Test coverage
 coverage/
 
