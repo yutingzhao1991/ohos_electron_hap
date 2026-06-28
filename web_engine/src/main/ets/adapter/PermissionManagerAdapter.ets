@@ -50,7 +50,6 @@ const EMPTY_ARRAY: number = -1;
 const TAG: string = 'PermissionManagerAdapter';
 const REQUEST_PERMISSION_FAIL: number = -2;
 const REQUEST_PERMISSION_SUCCESS: number = 0;
-const PROJECT_DIRECTORY_PERMISSION_TYPE: string = 'directory_document';
 let dataPreferences: preferences.Preferences | null = null;
 let options: preferences.Options = { name: 'myStore' };
 
@@ -98,7 +97,6 @@ export class PermissionManagerAdapter extends BaseAdapter {
   private tokenId: number = 0;
   private ctxAdapter: ContextAdapter;
   private isInitialized: boolean = false;
-  private projectDirectoryPermissionRequested: boolean = false;
   private appLabelId: number = 0;
   private bundleName: string = 'com.feelfish.desktop';
   private bundleFlags = bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION |
@@ -196,7 +194,6 @@ export class PermissionManagerAdapter extends BaseAdapter {
     }
     this.isInitialized = true;
     this.activatePersistedFileAccessPermissions();
-    this.ensureProjectDirectoryPermission();
   }
 
   private activatePersistedFileAccessPermissions(): void {
@@ -209,25 +206,6 @@ export class PermissionManagerAdapter extends BaseAdapter {
       if (code !== ACTIVATE_SUCCESS) {
         LogUtil.error(TAG, 'activation failed for persisted file access permissions');
       }
-    });
-  }
-
-  private ensureProjectDirectoryPermission(): void {
-    if (this.projectDirectoryPermissionRequested) {
-      return;
-    }
-    this.projectDirectoryPermissionRequested = true;
-
-    this.checkPermissions(PROJECT_DIRECTORY_PERMISSION_TYPE, (granted) => {
-      if (granted) {
-        return;
-      }
-
-      this.requestPermissions(PROJECT_DIRECTORY_PERMISSION_TYPE, (code) => {
-        if (code !== REQUEST_PERMISSION_SUCCESS) {
-          LogUtil.error(TAG, `project directory permission denied, code:${code}`);
-        }
-      });
     });
   }
 
