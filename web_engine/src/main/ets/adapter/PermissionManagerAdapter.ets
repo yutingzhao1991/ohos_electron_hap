@@ -50,6 +50,7 @@ const EMPTY_ARRAY: number = -1;
 const TAG: string = 'PermissionManagerAdapter';
 const REQUEST_PERMISSION_FAIL: number = -2;
 const REQUEST_PERMISSION_SUCCESS: number = 0;
+const DEFAULT_DIRECTORY_PERMISSION_TYPE: string = 'directory_document';
 let dataPreferences: preferences.Preferences | null = null;
 let options: preferences.Options = { name: 'myStore' };
 
@@ -120,7 +121,8 @@ export class PermissionManagerAdapter extends BaseAdapter {
 
   @LogMethod
   requestPermissions(permissionType: string, callback: (granted: number) => void) {
-    const permissions = this.needPermissions.get(permissionType);
+    const normalizedPermissionType = this.normalizePermissionType(permissionType);
+    const permissions = this.needPermissions.get(normalizedPermissionType);
     if (!permissions) {
       LogUtil.error(TAG, 'unsupported permission:' + permissionType);
       callback(REQUEST_PERMISSION_FAIL);
@@ -143,15 +145,15 @@ export class PermissionManagerAdapter extends BaseAdapter {
               callback(grantStatus[i]);
               return;
             }
-          }
-          callback(REQUEST_PERMISSION_SUCCESS);
-        }).catch((err: BusinessError) => {
-        LogUtil.error(TAG, 'Request permissions is failed, type:' + permissionType + 
+        }
+        callback(REQUEST_PERMISSION_SUCCESS);
+      }).catch((err: BusinessError) => {
+        LogUtil.error(TAG, 'Request permissions is failed, type:' + normalizedPermissionType +
         ', err:BusinessError: ' + JSON.stringify(err));
         callback(REQUEST_PERMISSION_FAIL);
       });
     } catch (err) {
-      LogUtil.error(TAG, 'Request permissions is failed, type:' + permissionType + 
+      LogUtil.error(TAG, 'Request permissions is failed, type:' + normalizedPermissionType +
         ', err:' + JSON.stringify(err));
       callback(REQUEST_PERMISSION_FAIL);
     }
@@ -159,7 +161,8 @@ export class PermissionManagerAdapter extends BaseAdapter {
 
   @LogMethod
   async checkPermissions(permissionType: string, callback: (granted: boolean) => void): Promise<void> {
-    const permissions = this.needPermissions.get(permissionType) as Array<Permissions>;
+    const normalizedPermissionType = this.normalizePermissionType(permissionType);
+    const permissions = this.needPermissions.get(normalizedPermissionType) as Array<Permissions>;
     if (!permissions) {
       LogUtil.error(TAG, 'unsupported permission:' + permissionType);
       callback(false);
@@ -185,6 +188,26 @@ export class PermissionManagerAdapter extends BaseAdapter {
       }
     }
     callback(true);
+  }
+
+  private normalizePermissionType(permissionType: string): string {
+    // HarmonyOS Electron directory requests can reach this adapter either as
+    // an empty default or as a user-directory path. Map those unstable API
+    // shapes back to the permission keys used by needPermissions.
+    const normalizedPermissionType = (permissionType || '').trim();
+    if (normalizedPermissionType.length === 0) {
+      return DEFAULT_DIRECTORY_PERMISSION_TYPE;
+    }
+    if (normalizedPermissionType.startsWith('/storage/Users/currentUser/Download')) {
+      return 'directory_download';
+    }
+    if (normalizedPermissionType.startsWith('/storage/Users/currentUser/Desktop')) {
+      return 'directory_desktop';
+    }
+    if (normalizedPermissionType.startsWith('/storage/Users/currentUser/Document')) {
+      return DEFAULT_DIRECTORY_PERMISSION_TYPE;
+    }
+    return normalizedPermissionType;
   }
 
   @LogMethod
