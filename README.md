@@ -205,14 +205,7 @@ hdc fport tcp:9229 tcp:9229
 - **Binary files**: May need to replace with HarmonyOS versions
 
 ### Permission Issues
-If certain ACL permissions cannot be obtained, you can temporarily comment out related permissions:
-```json
-// "requestPermissions": [
-//   {
-//     "name": "ohos.permission.SYSTEM_FLOAT_WINDOW"
-//   }
-// ]
-```
+Keep `requestPermissions` aligned with the current permissions declared in `web_engine/src/main/module.json5`.
 
 ## Contributing
 

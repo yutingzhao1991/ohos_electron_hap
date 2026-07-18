@@ -205,14 +205,7 @@ hdc fport tcp:9229 tcp:9229
 - **二进制文件**: 可能需要替换为鸿蒙版本
 
 ### 权限问题
-如果某些 ACL 权限无法获得，可以暂时注释掉相关权限：
-```json
-// "requestPermissions": [
-//   {
-//     "name": "ohos.permission.SYSTEM_FLOAT_WINDOW"
-//   }
-// ]
-```
+`requestPermissions` 应以 `web_engine/src/main/module.json5` 中当前声明的权限为准。
 
 ## 贡献指南
 
