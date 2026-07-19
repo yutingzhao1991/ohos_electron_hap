@@ -79,6 +79,10 @@ export class SubWindowAdapter extends BaseAdapter {
         paramsLink.set(lastParams);
         this.resizeSubWindow(reusableWindow.subWindow, fixedBounds.width, fixedBounds.height);
         this.moveSubWindow(reusableWindow.subWindow, fixedBounds.left, fixedBounds.top, parentId);
+        reusableWindow.subWindow.setResizeByDragEnabled(param.resizable)
+          .catch((err: BusinessError) => {
+            LogUtil.error(TAG, 'Failed to set the reused subWindow resizable. Cause: ' + JSON.stringify(err));
+          });
         reusableWindow.subWindow.showWindow()
           .catch((err: BusinessError) => {
             LogUtil.error(TAG, 'Failed to reuseSubWindow: ' + reusableWindow.id + ',err:' + JSON.stringify(err));
@@ -99,7 +103,7 @@ export class SubWindowAdapter extends BaseAdapter {
       }
     };
     let subStorage: LocalStorage = new LocalStorage(para);
-    this.createNewWindow(parentId, param.window_id, fixedBounds, subStorage);
+    this.createNewWindow(parentId, param.window_id, fixedBounds, param.resizable, subStorage);
   }
 
   private getParentWindow(parentId: string): window.Window | undefined {
@@ -177,6 +181,7 @@ export class SubWindowAdapter extends BaseAdapter {
   private createNewWindow(parentId: string,
                           id: string,
                           bounds: WindowBound,
+                          resizable: boolean,
                           subStorage: LocalStorage) {
     let proxy = this.abilityManager.getProxy(parentId);
     if (!proxy) {
@@ -185,7 +190,7 @@ export class SubWindowAdapter extends BaseAdapter {
     }
     proxy?.createSubWindow(id)
       .then((data: window.Window) => {
-        this.initSubWindow(data, parentId, id, bounds, subStorage);
+        this.initSubWindow(data, parentId, id, bounds, resizable, subStorage);
       }).catch((error: BusinessError) => {
       LogUtil.error(TAG, 'Failed to create the subWindow. Cause: ' + JSON.stringify(error));
     });
@@ -195,6 +200,7 @@ export class SubWindowAdapter extends BaseAdapter {
                         parentId: string,
                         id: string,
                         bounds: WindowBound,
+                        resizable: boolean,
                         subStorage: LocalStorage) {
     try {
       let windowClass = data;
@@ -221,6 +227,10 @@ export class SubWindowAdapter extends BaseAdapter {
       if (bounds.width > 0 && bounds.height > 0) {
         this.resizeSubWindow(windowClass, bounds.width, bounds.height);
       }
+      windowClass.setResizeByDragEnabled(resizable)
+        .catch((err: BusinessError) => {
+          LogUtil.error(TAG, 'Failed to set the subWindow resizable. Cause: ' + JSON.stringify(err));
+        });
       windowClass.loadContent('pages/SubWindow', subStorage, (err) => {
         if (err.code) {
           LogUtil.error(TAG, 'Failed to load the content. Cause:' + JSON.stringify(err));
