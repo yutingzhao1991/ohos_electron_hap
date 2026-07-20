@@ -115,8 +115,13 @@ export class DialogAdapter extends BaseAdapter {
     LogUtil.error(TAG, 'parentId ' + boxSettings.parent_id);
     let parentId = boxSettings.parent_id === -1 ? 1 : boxSettings.parent_id;
     let messageBoxManager: MessageBoxData | undefined = this.abilityManager.getMessageBox(parentId);
-    messageBoxManager?.setMessageBoxParams(params);
-    messageBoxManager?.dialogController.open();
+    if (!messageBoxManager) {
+      LogUtil.error(TAG, `showMessageBox failed, parentId ${parentId} is not ready`);
+      callback(boxSettings.cancel_id, boxSettings.checkbox_checked);
+      return;
+    }
+    messageBoxManager.setMessageBoxParams(params);
+    messageBoxManager.dialogController.open();
   }
 
   @LogMethod
