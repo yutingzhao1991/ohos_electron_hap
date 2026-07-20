@@ -65,7 +65,7 @@
         "reason": "$string:documents_dir",
         "usedScene": {
           "abilities": [
-            "FormAbility"
+            "EntryAbility"
           ],
           "when":"always"
         }

@@ -28,6 +28,7 @@
  */
 
 import fs from '@ohos.file.fs';
+import fileUri from '@ohos.file.fileuri';
 import LogUtil from '../utils/LogUtil';
 import LogMethod from '../common/LogDecorator';
 import picker from '@ohos.file.picker';
@@ -38,6 +39,7 @@ import { BusinessError } from '@ohos.base';
 import { image } from '@kit.ImageKit';
 import { inject, injectable } from 'inversify';
 import { ContextAdapter } from './ContextAdapter';
+import { PermissionManagerAdapter } from './PermissionManagerAdapter';
 
 const TAG: string = 'Dialog';
 
@@ -90,11 +92,14 @@ export class DialogAdapter extends BaseAdapter {
   private static DEFAULT_DIR: string = 'file://docs/storage/Users/currentUser';
   private static MAX_SELECT_NUMBER: number = 500;
   private ctxAdapter: ContextAdapter;
+  private permissionManagerAdapter: PermissionManagerAdapter;
   private allFIleDescriptionId: number = $r("app.string.upload_all_file_description").id;
 
-  constructor(@inject(ContextAdapter) ctxAdapter: ContextAdapter) {
+  constructor(@inject(ContextAdapter) ctxAdapter: ContextAdapter,
+    @inject(PermissionManagerAdapter) permissionManagerAdapter: PermissionManagerAdapter) {
     super();
     this.ctxAdapter = ctxAdapter;
+    this.permissionManagerAdapter = permissionManagerAdapter;
   }
 
   @LogMethod
@@ -165,7 +170,11 @@ export class DialogAdapter extends BaseAdapter {
       if (DocumentSelectResult.length === 0) {
         callback([], true);
       } else {
-        callback(DocumentSelectResult, false);
+        if (dialogSettings.properties_open_directory) {
+          this.permissionManagerAdapter.fileAccessPersist(DocumentSelectResult);
+          this.permissionManagerAdapter.saveUris(DocumentSelectResult);
+        }
+        callback(this.normalizePickerPaths(DocumentSelectResult), false);
       }
     }).catch((err: BusinessError) => {
       LogUtil.error(TAG, 'DocumentViewPicker.select failed with err: ' + JSON.stringify(err));
@@ -201,6 +210,19 @@ export class DialogAdapter extends BaseAdapter {
       LogUtil.error(TAG, 'DocumentViewPicker.save failed with err: ' + JSON.stringify(err));
       callback('', true);
     });
+  }
+
+  private normalizePickerPaths(uris: string[]): string[] {
+    let paths = new Array<string>();
+    uris.forEach((uri) => {
+      try {
+        paths.push(new fileUri.FileUri(uri).path);
+      } catch (err) {
+        LogUtil.error(TAG, `normalize picker uri failed: ${JSON.stringify(err)}`);
+        paths.push(uri);
+      }
+    });
+    return paths;
   }
 
   private handleDefaultPath(default_path: string) {
