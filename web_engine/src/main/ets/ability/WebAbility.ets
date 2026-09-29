@@ -167,6 +167,20 @@ export class WebAbility extends WebBaseAbility {
       }
 
       let window: window.Window = windowStage.getMainWindowSync();
+      // 顶层窗口的初始位置/大小由 AppWindowAdapter 通过 want 参数传入（见 WebBaseAbility.initParameters）
+      if (this.initialWindowBounds !== undefined) {
+        let bounds: window.Rect = this.initialWindowBounds;
+        window.moveWindowTo(bounds.left, bounds.top, (err: BusinessError) => {
+          if (err.code) {
+            LogUtil.error(TAG, 'Failed to move the new window. Cause: ' + JSON.stringify(err));
+          }
+        });
+        window.resize(bounds.width, bounds.height, (err: BusinessError) => {
+          if (err.code) {
+            LogUtil.error(TAG, 'Failed to resize the new window. Cause: ' + JSON.stringify(err));
+          }
+        });
+      }
       // hide title bar
       window.setWindowDecorVisible(!this.hideTitleBar);
       if (this.useDarkMode) {

@@ -60,4 +60,31 @@ export default class LaunchHelper {
   static Launch(uiContext: Context | undefined, want: Want): boolean {
     return LaunchHelper.LaunchWithOptions(uiContext, want, {});
   }
+
+  /**
+   * 不带 StartOptions 启动新实例。StartOptions.processMode 只对状态栏组件开放：
+   * ATTACH_TO_STATUS_BAR_ITEM 会被 AMS 以 "not in status bar" 拒绝（16000067），
+   * NEW_PROCESS_ATTACH_TO_PARENT 会被以 "processMode is not attach to status bar item"
+   * 拒绝（16000068），而省略 processMode 又会在 napi 层 "Unwrap processMode failed"（401）。
+   * 因此普通应用的独立窗口必须走单参 startAbility，窗口几何信息通过 want.parameters 传递。
+   */
+  static LaunchWithoutOptions(uiContext: Context | undefined, want: Want): boolean {
+    try {
+      let context = uiContext as common.UIAbilityContext ||
+        uiContext as common.UIExtensionContext;
+      if (!context) {
+        LogUtil.error(TAG, `excute failed, want: ${JSON.stringify(want)}`);
+        return false;
+      }
+      context.startAbility(want)
+        .catch((error: BusinessError) => {
+          LogUtil.error(TAG, `excute failed. Cause: ${JSON.stringify(error)}`);
+          return false;
+        });
+    } catch (exception) {
+      LogUtil.error(TAG, `excute failed exception. Cause: ${JSON.stringify(exception)}`);
+      return false;
+    }
+    return true;
+  }
 }

@@ -32,10 +32,8 @@ import AbilityConstant from '@ohos.app.ability.AbilityConstant';
 import bundleManager from '@ohos.bundle.bundleManager';
 import { BusinessError } from '@ohos.base';
 import common from '@ohos.app.ability.common';
-import { contextConstant, StartOptions } from '@kit.AbilityKit';
 import { display, window } from '@kit.ArkUI';
 import { deviceInfo } from '@kit.BasicServicesKit';
-import { image } from '@kit.ImageKit';
 import Want from '@ohos.app.ability.Want';
 
 import { AbilityManager } from '../common/AbilityManager';
@@ -87,6 +85,12 @@ export class AppWindowAdapter extends BaseAdapter {
     if (param.is_stateless) {
       abilityName = "StatelessAbility";
     }
+
+    let windowClass = this.ctxAdapter.getActiveProxy().getWindow();
+    const windowProp = windowClass?.getWindowProperties();
+    let leftBorder: number = param.hide_title_bar ? 0 : windowProp?.drawableRect.left || 0;
+    let topBorder: number = param.hide_title_bar ? 0 : windowProp?.drawableRect.top || 0;
+
     const want: Want = {
       bundleName: this.bundleName,
       abilityName: abilityName,
@@ -103,41 +107,20 @@ export class AppWindowAdapter extends BaseAdapter {
         'resizable': param.resizable,
         'isModal': param.is_modal,
         'isPanel': param.is_panel,
+        // 独立顶层窗口的初始位置和大小。
+        'windowLeft': param.bounds.left - leftBorder,
+        'windowTop': param.bounds.top - topBorder,
+        'windowWidth': param.bounds.width + leftBorder + leftBorder,
+        'windowHeight': param.bounds.height + leftBorder + topBorder,
       }
     };
 
-    let windowClass = this.ctxAdapter.getActiveProxy().getWindow();
-    const windowProp = windowClass?.getWindowProperties();
-    let leftBorder: number = param.hide_title_bar ? 0 : windowProp?.drawableRect.left || 0;
-    let topBorder: number = param.hide_title_bar ? 0 : windowProp?.drawableRect.top || 0;
-    let imagePixelMap: image.PixelMap;
-    let color = new ArrayBuffer(0);
-
-    image.createPixelMap(color, {
-      size: {
-        height: param.bounds.height + leftBorder + topBorder,
-        width: param.bounds.width + leftBorder + leftBorder,
-      }
-    }).then((data) => {
-      imagePixelMap = data;
-      let options: StartOptions = {
-        processMode: contextConstant.ProcessMode.ATTACH_TO_STATUS_BAR_ITEM,
-        startupVisibility: param.show ? contextConstant.StartupVisibility.STARTUP_SHOW : contextConstant.StartupVisibility.STARTUP_HIDE,
-        windowLeft: param.bounds.left - leftBorder,
-        windowTop: param.bounds.top - topBorder,
-        windowWidth: param.bounds.width + leftBorder + leftBorder,
-        windowHeight: param.bounds.height + leftBorder + topBorder,
-        startWindowIcon: imagePixelMap,
-        startWindowBackgroundColor: this.defaultBackgroundColor
-      }
-      if (param.is_panel) {
-        options.windowMode = AbilityConstant.WindowMode.WINDOW_MODE_FULLSCREEN;
-      }
-      if (param.display_id != -1) {
-        options.displayId = param.display_id;
-      }
-      LaunchHelper.LaunchWithOptions(this.ctxAdapter.getActiveContext(), want, options);
-    })
+    // 独立顶层窗口用不带 StartOptions 的 startAbility 启动：StartOptions.processMode 只对
+    // 状态栏组件开放（ATTACH_TO_STATUS_BAR_ITEM 报 16000067 "not in status bar"，
+    // NEW_PROCESS_ATTACH_TO_PARENT 报 16000068 "processMode is not attach to status bar item"），
+    // 省略 processMode 又会在 napi 层 "Unwrap processMode failed"（401）。
+    // 窗口几何信息因此走 want.parameters，由 WebAbility 在窗口创建后应用。
+    LaunchHelper.LaunchWithoutOptions(this.ctxAdapter.getActiveContext(), want);
   }
 
   @LogMethod

@@ -52,6 +52,11 @@ export class WebBaseAbility extends UIAbility implements WebProxy {
   protected originWindowId: number = -1;
   protected useDarkMode: boolean = false;
   protected isStateless: boolean = false;
+  /**
+   * 新顶层窗口的初始几何信息。普通应用不能用 StartOptions.processMode（只对状态栏组件开放），
+   * 所以 AppWindowAdapter 把位置和大小放进 want.parameters，这里读出来交给 WebAbility 应用。
+   */
+  protected initialWindowBounds: window.Rect | undefined = undefined;
 
   // Electron
   protected electronRelaunchArgs: string[] = [];
@@ -85,6 +90,14 @@ export class WebBaseAbility extends UIAbility implements WebProxy {
       }
       if (want.parameters['isPanel'] !== undefined) {
         this.isPanel = want.parameters['isPanel'] as boolean;
+      }
+      if (want.parameters['windowWidth'] !== undefined && want.parameters['windowHeight'] !== undefined) {
+        this.initialWindowBounds = {
+          left: want.parameters['windowLeft'] as number,
+          top: want.parameters['windowTop'] as number,
+          width: want.parameters['windowWidth'] as number,
+          height: want.parameters['windowHeight'] as number,
+        };
       }
       if (want.parameters["electronRelaunchArgs"] !== undefined) {
         // DevEco 传入的是字符串数组；`aa start --ps electronRelaunchArgs <arg>` 只能传字符串。
