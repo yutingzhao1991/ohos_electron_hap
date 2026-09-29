@@ -87,10 +87,19 @@ export class WebBaseAbility extends UIAbility implements WebProxy {
         this.isPanel = want.parameters['isPanel'] as boolean;
       }
       if (want.parameters["electronRelaunchArgs"] !== undefined) {
-        (want.parameters["electronRelaunchArgs"] as string[]).forEach((arg: string) => {
-          this.electronRelaunchArgs.push(arg);
-        });
-        LogUtil.info(TAG, 'electronRelaunchArgs = ' + JSON.stringify(this.electronRelaunchArgs));
+        // DevEco 传入的是字符串数组；`aa start --ps electronRelaunchArgs <arg>` 只能传字符串。
+        // 两种形式都接受，便于在没有可用 GPU 的环境（例如模拟器）追加 --disable-gpu 等启动参数。
+        const relaunchArgs: Object = want.parameters["electronRelaunchArgs"];
+        if (typeof relaunchArgs === 'string') {
+          this.electronRelaunchArgs.push(relaunchArgs);
+        } else if (Array.isArray(relaunchArgs)) {
+          (relaunchArgs as string[]).forEach((arg: string) => {
+            this.electronRelaunchArgs.push(arg);
+          });
+        }
+        if (this.electronRelaunchArgs.length > 0) {
+          LogUtil.info(TAG, 'electronRelaunchArgs = ' + JSON.stringify(this.electronRelaunchArgs));
+        }
       }
       if (want.parameters["isStateless"] !== undefined) {
         this.isStateless = want.parameters['isStateless'] as boolean;
